@@ -189,7 +189,6 @@ int main( int argc, char **argv )
 	// All Parameters with factories
 	map<string, double> gParameters = loadAllParameters(parameterFactoriesMap, gemcOpt, runConds);
 	
-	
 	// Process Hit Map
 	gemc_splash.message(" Building gemc Process Hit Factory...");
 	map<string, HitProcess_Factory> hitProcessMap = HitProcess_Map(gemcOpt.optMap["HIT_PROCESS_LIST"].args);
