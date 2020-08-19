@@ -50,8 +50,8 @@ map<string, G4Material*> text_materials::initMaterials(runConditions rc, goption
 			if(getenv("GEMC_DATA_DIR")  != NULL)
 			{
 				
-				//string maybeHere = (string) getenv("GEMC_DATA_DIR") + "/" + filename;
-				string maybeHere = "/work/clas12/users/tkutz/gemc/clas12Tags/4.3.1/" + filename;
+				string maybeHere = (string) getenv("GEMC_DATA_DIR") + "/" + filename;
+				//string maybeHere = "/work/clas12/users/tkutz/gemc/clas12Tags/4.3.1/" + filename;
 				
 				IN.open(maybeHere.c_str());
 				if(!IN)

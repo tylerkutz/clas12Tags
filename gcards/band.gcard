@@ -1,0 +1,5 @@
+<gcard>
+	<!-- upstream (includes BAND for now, possibly separated in future -->
+	<detector name="experiments/clas12/upstream/upstream"	factory="TEXT" variation="default"/>
+
+</gcard>
