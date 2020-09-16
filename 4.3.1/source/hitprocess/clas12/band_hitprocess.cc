@@ -15,6 +15,8 @@ using namespace CLHEP;
 #include <CCDB/CalibrationGenerator.h>
 using namespace ccdb;
 
+double BARLENGTHS[]  = {163.7,201.9,51.2,51.2,201.9};
+
 static bandHitConstants initializeBANDHitConstants(int runno)
 {
 	// all these constants should be read from CCDB
@@ -31,7 +33,7 @@ static bandHitConstants initializeBANDHitConstants(int runno)
 	// database
 	bhc.runNo = runno;
 
-	bhc.date       = "2016-03-15";
+	bhc.date       = "2020-07-15";
 	if(getenv ("CCDB_CONNECTION") != NULL)
 		bhc.connection = (string) getenv("CCDB_CONNECTION");
 	else
@@ -44,7 +46,7 @@ static bandHitConstants initializeBANDHitConstants(int runno)
 	vector<vector<double> > data;
 	int isector, ilayer, icomp;
 
-	cout<<"BAND:Getting effective velocities"<<endl;
+	//cout<<"BAND:Getting effective velocities"<<endl;
 	sprintf(bhc.database,"/calibration/band/effective_velocity:%d",bhc.runNo);
 	data.clear(); calib->GetCalib(data,bhc.database);
 	for(unsigned row = 0; row < data.size(); row++)
@@ -53,11 +55,24 @@ static bandHitConstants initializeBANDHitConstants(int runno)
 		ilayer     = data[row][1];
 		icomp	   = data[row][2];
 		bhc.eff_vel[isector-1][ilayer-1][icomp-1] = data[row][3];
-		printf("%i \t %i \t %i \t %.2f \n", isector, ilayer, icomp, bhc.eff_vel[isector-1][ilayer-1][icomp-1]);
-		
+		//printf("%i \t %i \t %i \t %.2f \n", isector, ilayer, icomp, bhc.eff_vel[isector-1][ilayer-1][icomp-1]);
+
 	}
 
-	cout<<"BAND:Getting TDC offsets and resolutions"<<endl;
+	//cout<<"BAND:Getting attenuation lengths"<<endl;
+	sprintf(bhc.database,"/calibration/band/attenuation_lengths:%d",bhc.runNo);
+	data.clear(); calib->GetCalib(data,bhc.database);
+	for(unsigned row = 0; row < data.size(); row++)
+	{
+		isector    = data[row][0];
+		ilayer     = data[row][1];
+		icomp	   = data[row][2];
+		bhc.atten_len[isector-1][ilayer-1][icomp-1] = data[row][3];
+		//printf("%i \t %i \t %i \t %.2f \n", isector, ilayer, icomp, bhc.atten_len[isector-1][ilayer-1][icomp-1]);
+
+	}
+
+	//cout<<"BAND:Getting TDC offsets and resolutions"<<endl;
 	sprintf(bhc.database,"/calibration/band/paddle_offsets_tdc:%d",bhc.runNo);
 	data.clear(); calib->GetCalib(data,bhc.database);
 	for(unsigned row = 0; row < data.size(); row++)
@@ -71,7 +86,7 @@ static bandHitConstants initializeBANDHitConstants(int runno)
 
 	// These are not in the CCDB
 	// Fill with constant values
-	cout<<"BAND:Getting MeV->ADC conversions"<<endl;
+	//cout<<"BAND:Getting MeV->ADC conversions"<<endl;
 	for(isector = 0; isector < bhc.nsector; isector++) {
 		for(ilayer = 0; ilayer < bhc.nlayer; ilayer++) {
 			for(icomp = 0; icomp < bhc.ncomp; icomp++) {
@@ -91,105 +106,171 @@ static bandHitConstants initializeBANDHitConstants(int runno)
 
 map<string, double> band_HitProcess :: integrateDgt(MHit* aHit, int hitn)
 {
+
+	// This is all steps for one identifier
+	
+	//cout << "IN INTEGRATE DGT\n";
 	map<string, double> dgtz;
-/*
-	// use Crystal ID to define IDX and IDY
 	vector<identifier> identity = aHit->GetId();
-	int isector    = identity[0].id;
-	int ilayer     = identity[1].id;
-	int icomponent = identity[2].id;
+	int sector    = identity[0].id;
+	int layer     = identity[1].id;
+	int component = identity[2].id;
+	int barID = sector*100 + layer*10 + component;
 
-	if(aHit->isBackgroundHit == 1) {
-
-		// background hit has all the energy in the first step. Time is also first step
-		double totEdep  = aHit->GetEdep()[0];
-		double stepTime = aHit->GetTime()[0];
-
-		double charge   = totEdep*bhc.mips_charge[isector-1][ilayer-1][icomponent-1]/bhc.mips_energy[isector-1][ilayer-1][icomponent-1];
-
-		dgtz["hitn"]      = hitn;
-		dgtz["sector"]    = isector;
-		dgtz["layer"]     = ilayer;
-		dgtz["component"] = icomponent;
-		dgtz["adc"]       = (int) (charge/bhc.fadc_LSB);
-		dgtz["tdc"]       = (int) (stepTime*bhc.time_to_tdc);;
-
-		return dgtz;
-	}
-
+	// You can either loop over all the steps of the hit, or just take the
+	// Edep averaged quantities from the trueInfos object:
 	trueInfos tInfos(aHit);
 	
+	//double Edep = tInfos.eTot;
+	//double time = tInfos.time;
+	//double x = tInfos.lx / 10.;
+	//double y = tInfos.y / 10.;
+	//double z = tInfos.z / 10.;
+	//int PID = aHit->GetPID();
+	//int Z = aHit->GetCharge();
 
-	// initialize ADC and TDC
-	int ADC = 0;
-	int TDC = 8191;
+	//// Based on PID, convert MeV Edep to MeVee
+	//double E_MeVee = MeVtoMeVee(PID,Z,Edep);
+	
+	// Based on x position and time (ToF), convert to PMT L/R time:
 
-	if(tInfos.eTot>0)
-	{
-		// adding shift and spread on time
-		double time=tInfos.time+bhc.tdc_offset[isector-1][ilayer-1][icomponent-1]+G4RandGauss::shoot(0., bhc.tdc_resolution[isector-1][ilayer-1][icomponent-1]);
-		TDC=int(time*bhc.time_to_tdc);
-		if(TDC>bhc.tdc_max) TDC=(int)bhc.tdc_max;
+	/*
+	if(aHit->isBackgroundHit == 1) {
 
-		// calculate charge and amplitude
-		double charge    = tInfos.eTot*bhc.mips_charge[isector-1][ilayer-1][icomponent-1]/bhc.mips_energy[isector-1][ilayer-1][icomponent-1];
-		double npe_mean  = charge/bhc.gain_pc[isector-1][ilayer-1][icomponent-1];
-		double npe       = G4Poisson(npe_mean);
-		charge           = charge * npe/npe_mean;
-		//        double amplitude = charge*bhc.gain_mv[isector-1][ilayer-1][icomponent-1]/bhc.gain_pc[isector-1][ilayer-1][icomponent-1];
-		//        double fadc      = amplitude/bhc.fadc_LSB;
-		ADC = (int) (charge*bhc.fadc_input_impedence/bhc.fadc_LSB/bhc.ns_per_sample);
-
-	}
-
-	// Status flags
-	switch (bhc.status[isector-1][ilayer-1][icomponent-1])
-	{
-		case 0:
-			break;
-		case 1:
-			break;
-		case 3:
-			ADC = TDC = 0;
-			break;
-
-		case 5:
-			break;
-
-		default:
-			cout << " > Unknown FTHODO status: " << bhc.status[isector-1][ilayer-1][icomponent-1] << " for sector, layer, component "
-			<< isector << ", "
-			<< ilayer  << ", "
-			<< icomponent << endl;
-	}
+	// background hit has all the energy in the first step. Time is also first step
+	double totEdep  = aHit->GetEdep()[0];
+	double stepTime = aHit->GetTime()[0];
 
 	dgtz["hitn"]      = hitn;
 	dgtz["sector"]    = isector;
 	dgtz["layer"]     = ilayer;
 	dgtz["component"] = icomponent;
-	dgtz["adc"]       = ADC;
-	dgtz["tdc"]       = TDC;
-*/
+	dgtz["adc"]       = (int) (charge/bhc.fadc_LSB);
+	dgtz["tdc"]       = (int) (stepTime*bhc.time_to_tdc);;
+
+	return dgtz;
+	}
+	*/
+
+	// For each step do birk's laws
+	double birks_constant=aHit->GetDetector().GetLogical()->GetMaterial()->GetIonisation()->GetBirksConstant();
+	birks_constant = 0.126; // mm/MeV
+
+	vector<G4ThreeVector> 	Lpos 	= aHit->GetLPos();   	// local position wrt centre of the detector piece (ie: paddle): in mm
+	vector<double>      	Edep 	= aHit->GetEdep();     	// deposited energy in the hit, in MeV
+	vector<int> 		charge	= aHit->GetCharges();   // charge for each step
+	vector<int>		pid	= aHit->GetPIDs();	// PIDs for each step
+	vector<double> 		times 	= aHit->GetTime();
+	vector<double> 		dx 	= aHit->GetDx();        // step length
+	unsigned 		nsteps	= times.size();         // total number of steps in the hit
 	
-	dgtz["hitn"]      = 0;
-	dgtz["sector"]    = 0;
-	dgtz["layer"]     = 0;
-	dgtz["component"] = 0;
-	dgtz["adc"]       = 0;
-	dgtz["tdc"]       = 0;
+	double 	L 	= BARLENGTHS[sector-1];				 // length of the bar [cm]
+	double 	attenL  = bhc.atten_len[sector-1][layer-1][component-1]; // attenuation length of the bar [cm]
+	double 	vEff 	= bhc.eff_vel[sector-1][layer-1][component-1]; 	 // effective velocity of bar [cm/ns]
+
+	//double tL = time + (L/2.-x)/vEff;
+	//double tR = time + (L/2.+x)/vEff;
+
+	//cout << time << " " << x << " " << tInfos.x << " " << vEff << "\n";
+	
+
+	double eTotL = 0;
+	double eTotR = 0;
+	double tL = 0;
+	double tR = 0;
+	double rawEtot = 0;
+	if( tInfos.eTot > 0 ){
+		double et_L = 0.; // energy-weighted timeL
+		double et_R = 0.; // energy-weighted timeR
+		for(unsigned int s=0; s<nsteps; s++){
+			// apply Birks effect:
+			double Edep_B = BirksAttenuation(Edep[s],dx[s],charge[s],birks_constant);
+			rawEtot = rawEtot + Edep[s];
+
+			// Calculate attenuated energy which will reach the upstream and downstream edges of the hit paddle:
+			double dL    = (L/2. - Lpos[s].x()/cm);
+			double dR    = (L/2. + Lpos[s].x()/cm);
+			double e_L   = Edep_B * exp( -dL / attenL);
+			double e_R   = Edep_B * exp( -dR / attenL);
+
+			//cout << "step: " << s << "\n";
+			//cout << "\t" << Edep[s] << " " << dx[s] << " " << charge[s] << " " << pid[s] << " " << birks_constant << "\n";
+			//cout << "\t" << Edep_B << "\n";
+			//cout << "\t" << dL << " " << dR << " " << attenL << " " << e_L << " " << e_R << "\n";
+			
+			// Integrate energy over entire hit. These values are used for time-smearing:
+			eTotL = eTotL + e_L;
+			eTotR = eTotR + e_R;
+			
+			// Light-output weight the times:
+			et_L = et_L + (times[s] + dL/vEff)*e_L;
+			et_R = et_R + (times[s] + dR/vEff)*e_R;
+
+		}   // close loop over steps s
+		
+		/**** The following calculates the time based on energy-weighted average of all step times ****/
+		
+		tL = et_L / eTotL;      // sum(energy*time) /  sum(energy)
+		tR = et_R / eTotR;
+	}
+
+
+
+	if( layer == 6 ){ // To avoid infinities due to no effective velocity conversion and no
+			  // position determination in veto bars with 1 PMT readout
+		tL = tInfos.time;
+		tR = 0;
+	}
+	dgtz["hitn"]      	= (int) hitn;
+	dgtz["sector"]    	= (int) sector;
+	dgtz["layer"]     	= (int) layer;
+	dgtz["component"] 	= (int) component;
+	//dgtz["ADCL"]		= (int) (2300*E_MeVee);
+	//dgtz["amplitudeL"]	= (int) (2300*Edep);
+	dgtz["ADCL"]		= (int) (1E4 * eTotL);
+	dgtz["amplitudeL"]	= (int) (1E4 * rawEtot);
+	dgtz["ADCtimeL"]	= (double) tL;
+	dgtz["TDCL"]		= (int) (tL / 0.02345);
+	//dgtz["ADCR"]		= (int) (2300*E_MeVee);
+	//dgtz["amplitudeR"]	= (int) (2300*Edep);
+	dgtz["ADCR"]		= (int) (1E4 * eTotR);
+	dgtz["amplitudeR"]	= (int) (1E4 * tInfos.eTot );
+	dgtz["ADCtimeR"]	= (double) tR;
+	dgtz["TDCR"]		= (int) (tR / 0.02345);
+
+	//cout << "***************\n";
+	//cout << "hitn:\t\t" << hitn << "\n";
+	//cout << "sector:\t\t" << sector << "\n";
+	//cout << "layer:\t\t" << layer << "\n";
+	//cout << "component:\t" << component << "\n";
+	////cout << E_MeVee << "\n";
+	//cout << "local-x:\t" << tInfos.lx/cm << "\n";
+	//cout << "eTotL:\t\t" << eTotL << "\n";
+	//cout << "eTotR:\t\t" << eTotR << "\n";
+	//cout << "tL:\t\t" << tL << "\n";
+	//cout << "tR:\t\t" << tR << "\n";
+	//cout << "tInfoTime:\t" << tInfos.time << "\n";
+	//cout << "tInfoTimeL:\t" << tInfos.time + (L/2.-tInfos.lx/cm)/vEff << "\n";
+	//cout << "tInfoTimeR:\t" << tInfos.time + (L/2.+tInfos.lx/cm)/vEff << "\n";
+	//cout << "***************\n";
 	// decide if write an hit or not
 	writeHit = true;
 
 	// define conditions to reject hit
-	if(rejectHitConditions) {
-		writeHit = false;
-	}
-
+	//if(rejectHitConditions) {
+	//	writeHit = false;
+	//}
+	//cout << "RETURNING DGTZ\n";
 	return dgtz;
 }
 
 vector<identifier>  band_HitProcess :: processID(vector<identifier> id, G4Step* aStep, detector Detector)
 {
+
+	// This is where it's possible to create two dgtz from 1 hit of geant
+
+
+	//cout << "IN PROCESS ID\n";
 	id[id.size()-1].id_sharing = 1;
 	return id;
 }
@@ -197,6 +278,11 @@ vector<identifier>  band_HitProcess :: processID(vector<identifier> id, G4Step* 
 // - charge: returns charge/time digitized information / step
 map< int, vector <double> > band_HitProcess :: chargeTime(MHit* aHit, int hitn)
 {
+
+	// All hits within 
+
+
+	//cout << "IN CHARGE TIME\n";
 	map< int, vector <double> >  CT;
 
 	vector<double> hitNumbers;
@@ -249,21 +335,21 @@ map< int, vector <double> > band_HitProcess :: chargeTime(MHit* aHit, int hitn)
 
 
 	for (unsigned int s = 0; s < tInfos.nsteps; s++) {
-		// adding shift and spread on time
-		double stepTime = time[s] + fthc.time_offset[sector - 1][layer - 1][component - 1] + G4RandGauss::shoot(0., fthc.time_rms[sector - 1][layer - 1][component - 1]);
+	// adding shift and spread on time
+	double stepTime = time[s] + fthc.time_offset[sector - 1][layer - 1][component - 1] + G4RandGauss::shoot(0., fthc.time_rms[sector - 1][layer - 1][component - 1]);
 
-		// calculate charge and amplitude
-		double stepCharge = Edep[s] * fthc.mips_charge[sector - 1][layer - 1][component - 1] / fthc.mips_energy[sector - 1][layer - 1][component - 1];
-		double npe_mean = stepCharge / fthc.gain_pc[sector - 1][layer - 1][component - 1];
-		double npe = G4Poisson(npe_mean);
-		stepCharge = stepCharge * npe / npe_mean;
-		//        double amplitude = charge*fthc.gain_mv[isector-1][ilayer-1][icomponent-1]/fthc.gain_pc[isector-1][ilayer-1][icomponent-1];
-		//        double fadc      = amplitude/fthc.fadc_LSB;
-		double ADC = (stepCharge * fthc.fadc_input_impedence / fthc.fadc_LSB / fthc.ns_per_sample);
+	// calculate charge and amplitude
+	double stepCharge = Edep[s] * fthc.mips_charge[sector - 1][layer - 1][component - 1] / fthc.mips_energy[sector - 1][layer - 1][component - 1];
+	double npe_mean = stepCharge / fthc.gain_pc[sector - 1][layer - 1][component - 1];
+	double npe = G4Poisson(npe_mean);
+	stepCharge = stepCharge * npe / npe_mean;
+	//        double amplitude = charge*fthc.gain_mv[isector-1][ilayer-1][icomponent-1]/fthc.gain_pc[isector-1][ilayer-1][icomponent-1];
+	//        double fadc      = amplitude/fthc.fadc_LSB;
+	double ADC = (stepCharge * fthc.fadc_input_impedence / fthc.fadc_LSB / fthc.ns_per_sample);
 
-		stepIndex.push_back(s);
-		chargeAtElectronics.push_back(ADC);
-		timeAtElectronics.push_back(stepTime);
+	stepIndex.push_back(s);
+	chargeAtElectronics.push_back(ADC);
+	timeAtElectronics.push_back(stepTime);
 	}
 
 */
@@ -309,14 +395,14 @@ vector<MHit*> band_HitProcess :: electronicNoise()
 map< string, vector <int> >  band_HitProcess :: multiDgt(MHit* aHit, int hitn)
 {
 	map< string, vector <int> > MH;
-	
+
 	return MH;
 }
 
 void band_HitProcess::initWithRunNumber(int runno)
 {
 	if(bhc.runNo != runno) {
-		cout << " > Initializing " << HCname << " digitization for run number " << runno << endl;
+		//cout << " > Initializing " << HCname << " digitization for run number " << runno << endl;
 		bhc = initializeBANDHitConstants(runno);
 		bhc.runNo = runno;
 	}
@@ -327,7 +413,89 @@ void band_HitProcess::initWithRunNumber(int runno)
 bandHitConstants band_HitProcess::bhc = initializeBANDHitConstants(-1);
 
 
+double band_HitProcess::MeVtoMeVee(int PID, int Z, double E_MeV ){
+	double a1, a2, a3, a4;
+	if(PID == 11 || PID == -11 || PID == 13 || PID == -13 || PID == 22 || PID == 211 || PID == -211 ){ 
+		// (anti-)electrons, (anti-)muons, gamma, pions
+		a1 = 1;
+		a2 = 0;
+		a3 = 0;
+		a4 = 0;
+	}
+	else if(PID == 2212){ //proton
+		a1 = 0.902713 ;
+		a2 = 7.55009  ;
+		a3 = 0.0990013;
+		a4 = 0.736281 ;
+	}
+	else if(PID == 1000010020){ // deuterium
+		a1 = 0.891575 ;
+		a2 = 12.2122  ;
+		a3 = 0.0702262;
+		a4 = 0.782977 ;
+	}
+	else if(PID == 1000010030){ // tritium
+		a1 = 0.881489 ;
+		a2 = 15.9064  ;
+		a3 = 0.0564987;
+		a4 = 0.811916 ;
+	}
+	else if(PID == 1000020030){ // helium-3
+		a1 = 0.803919 ;
+		a2 = 34.4153  ;
+		a3 = 0.0254322;
+		a4 = 0.894859 ;
+	}
+	else if( Z == 2 ){
+		a1 = 0.781501 ;
+		a2 = 39.3133  ;
+		a3 = 0.0217115;
+		a4 = 0.910333 ;
+	}
+	else if( Z == 3 ){
+		a1 = 0.613491 ;
+		a2 = 57.1372  ;
+		a3 = 0.0115948;
+		a4 = 0.951875 ;
+	}
+	else if( Z == 4 ){
+		a1 = 0.435772 ;
+		a2 = 45.538   ;
+		a3 = 0.0104221;
+		a4 = 0.916373 ;
+	}
+	else if( Z == 5 ){
+		a1 = 0.350273 ;
+		a2 = 34.4664  ;
+		a3 = 0.0112395;
+		a4 = 0.912711 ;
+	}
+	else{ // Treat as C12 and call it good
+		a1 = 0.298394 ;
+		a2 = 25.5679  ;
+		a3 = 0.0130345;
+		a4 = 0.908512 ;
+	}
+	double E_MeVee = a1 * E_MeV  -  a2 * (1-exp(-a3*pow(E_MeV, a4)));
+	if( E_MeV < 0. || E_MeVee < 0. ) return 0;
+	return E_MeVee;
+}
 
+double band_HitProcess::BirksAttenuation(double destep, double stepl, int charge, double birks)
+{
+	//Example of Birk attenuation law in organic scintillators.
+	//adapted from Geant3 PHYS337. See MIN 80 (1970) 239-244
+	//
+	// Taken from GEANT4 examples advanced/amsEcal and extended/electromagnetic/TestEm3
+	//
+	double response = destep;
+	if (birks*destep*stepl*charge != 0.)
+	{
+		response = destep/(1. + birks*destep/stepl);
+		// dL = dE / (1 + [mm/MeV]*[MeV]/[mm])
+	}
+	return response;
+}
 
 
 

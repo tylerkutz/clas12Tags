@@ -22,6 +22,7 @@ public:
 
 	double mev_adc[6][6][7];
 	double eff_vel[6][6][7];
+	double atten_len[6][6][7];
 	double tdc_offset[6][6][7];
 	double tdc_resolution[6][6][7];
 	
@@ -57,6 +58,9 @@ public:
 	
 	// creates the HitProcess
 	static HitProcess *createHitClass() {return new band_HitProcess;}
+	
+	double MeVtoMeVee(int PID, int Z, double E_MeV );
+	double BirksAttenuation(double destep, double stepl, int charge, double birks);
 	
 private:
 	
