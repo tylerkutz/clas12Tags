@@ -203,8 +203,8 @@ map<string, double> band_HitProcess :: integrateDgt(MHit* aHit, int hitn)
 			rawEtot = rawEtot + Edep[s];
 
 			// Calculate attenuated energy which will reach the upstream and downstream edges of the hit paddle:
-			double dL    = (L/2. - Lpos[s].x()/cm);
-			double dR    = (L/2. + Lpos[s].x()/cm);
+			double dL    = (L/2. + Lpos[s].x()/cm);
+			double dR    = (L/2. - Lpos[s].x()/cm);
 			double e_L   = Edep_B * exp( -dL / attenL);
 			double e_R   = Edep_B * exp( -dR / attenL);
 
@@ -258,19 +258,18 @@ map<string, double> band_HitProcess :: integrateDgt(MHit* aHit, int hitn)
 	//dgtz["amplitudeL"]	= (int) (1E4 * rawEtot);
 	dgtz["amplitudeL"]	= (int) (1E4 * xHit);
 	dgtz["ADCtimeL"]	= (double) tL_fadc;
-	dgtz["TDCL"]		= (int) (tL_tdc / 0.02345);
+	dgtz["TDCL"]		= (int) (1E4 * tL_tdc / 0.02345);
 	dgtz["ADCR"]		= (int) (1E4 * eTotR);
 	//dgtz["amplitudeR"]	= (int) (1E4 * rawEtot );
 	dgtz["amplitudeR"]	= (int) (1E4 * zHit );
 	dgtz["ADCtimeR"]	= (double) tR_fadc;
-	dgtz["TDCR"]		= (int) (tR_tdc / 0.02345);
+	dgtz["TDCR"]		= (int) (1E4 * tR_tdc / 0.02345);
 
 	//cout << "***************\n";
 	//cout << "hitn:\t\t" << hitn << "\n";
 	//cout << "sector:\t\t" << sector << "\n";
 	//cout << "layer:\t\t" << layer << "\n";
 	//cout << "component:\t" << component << "\n";
-	//////cout << E_MeVee << "\n";
 	//cout << "eTotL:\t\t" << eTotL << "\n";
 	//cout << "eTotR:\t\t" << eTotR << "\n";
 	//cout << "tL:\t\t" << tL_fadc << "\n";
@@ -280,8 +279,9 @@ map<string, double> band_HitProcess :: integrateDgt(MHit* aHit, int hitn)
 	//cout << "EffVelTDC:\t" << vEff_tdc << "\n";
 	//cout << "EffVelFDC:\t" << vEff_fadc << "\n";
 	//cout << "tInfoTime:\t" << tInfos.time << "\n";
-	////cout << "tInfoTimeL:\t" << tInfos.time + (L/2.-tInfos.lx/cm)/vEff << "\n";
-	////cout << "tInfoTimeR:\t" << tInfos.time + (L/2.+tInfos.lx/cm)/vEff << "\n";
+	//cout << "x:\t\t" << xHit << "\n";
+	//cout << "y:\t\t" << yHit << "\n";
+	//cout << "z:\t\t" << zHit << "\n";
 	//cout << "***************\n";
 	// decide if write an hit or not
 	writeHit = true;
