@@ -37,7 +37,8 @@ map<string, detector> text_det_factory::loadDetectors()
 			if(getenv("GEMC_DATA_DIR")  != NULL)
 			{
 				string maybeHere = (string) getenv("GEMC_DATA_DIR") + "/" + fname;
-
+				//string maybeHere = "/work/clas12/users/tkutz/gemc/clas12Tags/4.3.1/" + fname;
+				//string maybeHere = "/jlab/work/mywork/clas12Tags/4.3.1/" + fname;
 				IN.open(maybeHere.c_str());
 				if(!IN)
 				{
