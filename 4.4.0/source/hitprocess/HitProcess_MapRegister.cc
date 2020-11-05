@@ -25,6 +25,7 @@
 #include "clas12/pcal_hitprocess.h"             ///< Pre-shower calorimeter
 #include "clas12/rich_hitprocess.h"             ///< Pre-shower calorimeter
 #include "clas12/rtpc_hitprocess.h"             ///< Radial Time Projection Chamber (RTPC)
+#include "clas12/band_hitprocess.h"		///< BAND
 
 // Beam Dump eXperiment
 #include "bdx/cormo_hitprocess.h"               ///< Cormorino detector
@@ -87,6 +88,7 @@ map<string, HitProcess_Factory> HitProcess_Map(string experiments)
 			hitMap["pcal"]     = &pcal_HitProcess::createHitClass;
 			hitMap["rich"]     = &rich_HitProcess::createHitClass;
 			hitMap["rtpc"]     = &rtpc_HitProcess::createHitClass;
+			hitMap["band"]	   = &band_HitProcess::createHitClass;
 		}
 		// Aprime
 		else if(EXP == "HPS")
