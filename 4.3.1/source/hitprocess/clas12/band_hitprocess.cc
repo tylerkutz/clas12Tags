@@ -7,6 +7,7 @@
 
 // CLHEP units
 #include "CLHEP/Units/PhysicalConstants.h"
+#include "CLHEP/Random/RandGaussT.h"
 using namespace CLHEP;
 
 // ccdb
@@ -250,6 +251,14 @@ map<string, double> band_HitProcess :: integrateDgt(MHit* aHit, int hitn)
 		tL_fadc = tInfos.time;
 		tR_fadc = 0;
 	}
+
+	// Apply simplistic smearing function
+	tL_fadc = CLHEP::RandGauss::shoot( tL_fadc, 0.3 );
+	tR_fadc = CLHEP::RandGauss::shoot( tR_fadc, 0.3 );
+	tL_tdc  = CLHEP::RandGauss::shoot( tL_tdc,  0.3 );
+	tR_tdc  = CLHEP::RandGauss::shoot( tR_tdc,  0.3 );
+
+
 	dgtz["hitn"]      	= (int) hitn;
 	dgtz["sector"]    	= (int) sector;
 	dgtz["layer"]     	= (int) layer;
