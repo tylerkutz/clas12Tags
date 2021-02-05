@@ -156,8 +156,9 @@ G4VPhysicalVolume* MDetectorConstruction::Construct()
 			// checking that we didn't already processed this file
 			if(gdmlAlreadyProcessed.find(filename) == gdmlAlreadyProcessed.end()) {
 
-				if(VERB > 1)
+				if(VERB > 1) {
 				 cout << "  > Parsing GDML Physical volumes from " << filename << endl;
+				}
 
 				// parsing G4 volumes
 				G4GDMLParser *parser = new G4GDMLParser();
@@ -165,9 +166,14 @@ G4VPhysicalVolume* MDetectorConstruction::Construct()
 
 				G4PhysicalVolumeStore::DeRegister(parser->GetWorldVolume());
 
-				// the volume name has to be "World"
+				size_t lastindex = filename.find_last_of(".");
+				string detectorName = filename.substr(0, lastindex);
+
+				// the setup volume name has to be "detectorName"
 				// its oririn are "root" coordinate
 				G4LogicalVolume* gdmlWorld = parser->GetVolume("World");
+//				G4LogicalVolume* gdmlWorld = parser->GetVolume(detectorName);
+//				cout << "ASD DET CONST " << gdmlWorld << endl;
 
 				// only daughters of World will be a new G4PVPlacement in root
 				for(int d=0; d<gdmlWorld->GetNoDaughters (); d++) {
@@ -208,18 +214,14 @@ G4VPhysicalVolume* MDetectorConstruction::Construct()
 		}
 	}
 
-
-
 	// build mirrors
 	buildMirrors();
-
 
 	// assigns production cuts for root
 	// assigns production cuts coming from sensitive detector assignment
 	// assigns production cuts coming from PRODUCTIONCUTFORVOLUMES option
 	regions.push_back("root");
 	assignProductionCuts(regions);
-	
 
 	// now output det information if verbosity or catch is given
 	for(auto &dd : *hallMap) {
@@ -749,7 +751,7 @@ void MDetectorConstruction::scanDetectors(int VERB, string catch_v)
 		{
 			detector kid = findDetector(relatives.back());
 			detector mom = findDetector(kid.mother);
-			// cout << " ASD " << kid.name << " " << kid.mother <<  " " << kid.scanned << " " << mom.scanned << " " << mom.factory << endl;
+			 // cout << " ASD " << kid.name << " " << kid.mother <<  " " << kid.scanned << " " << mom.scanned << " " << mom.factory << " mom system: " << mom.system << endl;
 
 			// production cut affects all volumes in a system rather than just the sensitive volumes
 			// if the mother system is different than the kid system
