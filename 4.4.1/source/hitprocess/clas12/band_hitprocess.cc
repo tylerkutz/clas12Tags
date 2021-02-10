@@ -54,7 +54,7 @@ static bandHitConstants initializeBANDHitConstants(int runno, string digiVariati
 	//ADD Statustable in the future, F.H 02/08/2021
 
 	//cout<<"BAND:Getting effective velocities"<<endl;
-	sprintf(bhc.database,"/calibration/band/effective_velocity:%d",bhc.runNo, digiVariation.c_str(), timestamp.c_str());
+	sprintf(bhc.database,"/calibration/band/effective_velocity:%d:%s%s",bhc.runNo, digiVariation.c_str(), timestamp.c_str());
 	data.clear(); calib->GetCalib(data,bhc.database);
 	for(unsigned row = 0; row < data.size(); row++)
 	{
@@ -68,7 +68,7 @@ static bandHitConstants initializeBANDHitConstants(int runno, string digiVariati
 	}
 
 	//cout<<"BAND:Getting attenuation lengths"<<endl;
-	sprintf(bhc.database,"/calibration/band/attenuation_lengths:%d",bhc.runNo, digiVariation.c_str(), timestamp.c_str());
+	sprintf(bhc.database,"/calibration/band/attenuation_lengths:%d:%s%s",bhc.runNo, digiVariation.c_str(), timestamp.c_str());
 	data.clear(); calib->GetCalib(data,bhc.database);
 	for(unsigned row = 0; row < data.size(); row++)
 	{
@@ -81,7 +81,7 @@ static bandHitConstants initializeBANDHitConstants(int runno, string digiVariati
 	}
 
 	//cout<<"BAND:Getting TDC offsets and resolutions"<<endl;
-	sprintf(bhc.database,"/calibration/band/paddle_offsets_tdc:%d",bhc.runNo, digiVariation.c_str(), timestamp.c_str());
+	sprintf(bhc.database,"/calibration/band/paddle_offsets_tdc:%d:%s%s",bhc.runNo, digiVariation.c_str(), timestamp.c_str());
 	data.clear(); calib->GetCalib(data,bhc.database);
 	for(unsigned row = 0; row < data.size(); row++)
 	{
@@ -452,7 +452,7 @@ void band_HitProcess::initWithRunNumber(int runno)
 
 	if(bhc.runNo != runno) {
 		cout << " > Initializing " << HCname << " digitization for run number " << runno << endl;
-		bhc = initializeCNDConstants(runno, digiVariation, digiSnapshotTime, accountForHardwareStatus);
+		bhc = initializeBANDHitConstants(runno, digiVariation, digiSnapshotTime, accountForHardwareStatus);
 		bhc.runNo = runno;
 	}
 }
