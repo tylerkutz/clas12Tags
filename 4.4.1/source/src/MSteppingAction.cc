@@ -23,6 +23,17 @@ void MSteppingAction::UserSteppingAction(const G4Step* aStep)
 {
 	G4ThreeVector   pos   = aStep->GetPostStepPoint()->GetPosition();      ///< Global Coordinates of interaction
 	G4Track*        track = aStep->GetTrack();
+
+	
+	G4ThreeVector prepos = aStep->GetPreStepPoint()->GetPosition();
+	G4String tab = "\t";
+	if(track->GetDefinition() == G4Geantino::GeantinoDefinition()) {
+		G4String volName = track->GetVolume()->GetName();
+		if(volName.find("scintillator") != G4String::npos) {
+			cout << "\"" << track->GetVolume()->GetName() << "\"" << tab << prepos.x() << tab << prepos.y() << tab << prepos.z() << endl;
+		}
+	}
+
 	
 	if(fabs(pos.x()) > max_x_pos ||
 	   fabs(pos.y()) > max_y_pos ||
