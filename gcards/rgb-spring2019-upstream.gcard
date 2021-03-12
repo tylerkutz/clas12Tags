@@ -61,7 +61,7 @@
 	<option name="SAVE_ALL_MOTHERS" value="0"/>
 	<option name="RECORD_OPTICALPHOTONS"   value="1"/>
 
-	<option name="PHYSICS" value="FTFP_BERT + STD + Optical"/>
+	<option name="PHYSICS" value="FTF_BIC + STD + Optical"/>
 
 	<option name="OUTPUT"   value="evio, gemc_output.ev"/>
 

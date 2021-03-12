@@ -2,11 +2,6 @@
 	<!-- BAND -->
 	<detector name="experiments/clas12/band/band"	factory="TEXT" variation="original"/>
 
-	<!-- upstream geometry -->
-	<detector name="experiments/clas12/upstreamBeampipe/upstreamBeampipe"		factory="TEXT" variation="main"/>
-	<detector name="experiments/clas12/upstreamSupportpipes/upstreamSupportpipes"	factory="TEXT" variation="main"/>
-	<detector name="experiments/clas12/mvt_electronics/mvt_ebox"			factory="TEXT" variation="main"/>
-
 	<!-- target -->
 	<detector name="experiments/clas12/targets/target" 				factory="TEXT" variation="lD2"/>
 	<detector name="experiments/clas12/targets/cad/"   				factory="CAD"/>
@@ -109,9 +104,9 @@
 	<detector name="ctof">      <position x="0*cm"     y="0*cm"     z="-3.00*cm"  />  </detector>
 	<detector name="cnd">       <position x="0*cm"     y="0*cm"     z="-3.00*cm"  />  </detector>
 	<detector name="band">      <position x="0*cm"     y="0*cm"     z="-3.00*cm"  />  </detector>
-	<detector name="pipe">      	<position x="0*cm"     y="0*cm"     z="-3.00*cm"  />  </detector>
-	<detector name="mom">      	<position x="0*cm"     y="0*cm"     z="-3.00*cm"  />  </detector>
-	<detector name="ebox">      		<position x="0*cm"     y="0*cm"     z="-3.00*cm"  />  </detector>
+	<detector name="upstreamBeampipe">      	<position x="0*cm"     y="0*cm"     z="-3.00*cm"  />  </detector>
+	<detector name="upstreamSupportpipes">      	<position x="0*cm"     y="0*cm"     z="-3.00*cm"  />  </detector>
+	<detector name="mvt_ebox">      		<position x="0*cm"     y="0*cm"     z="-3.00*cm"  />  </detector>
 
 
 	<!-- solenoid volume and field map shifted upstream by 20 mm -->
